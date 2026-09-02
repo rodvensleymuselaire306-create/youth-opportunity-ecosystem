@@ -1,0 +1,55 @@
+{
+  "name": "youth-opportunity-ecosystem-backend",
+  "version": "0.1.0",
+  "description": "Backend API for Youth Opportunity Ecosystem",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "ts-node src/scripts/seed.ts",
+    "db:studio": "npx prisma studio"
+  },
+  "keywords": [
+    "youth",
+    "opportunity",
+    "ecosystem",
+    "haiti"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@prisma/client": "^5.6.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.1.2",
+    "axios": "^1.6.0",
+    "zod": "^3.22.0",
+    "winston": "^3.11.0",
+    "redis": "^4.6.11",
+    "multer": "^1.4.5-lts.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.10.0",
+    "@types/express": "^4.17.21",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/cors": "^2.8.17",
+    "tsx": "^4.7.0",
+    "ts-node": "^10.9.1",
+    "prisma": "^5.6.0",
+    "eslint": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "prettier": "^3.1.0"
+  }
+}
