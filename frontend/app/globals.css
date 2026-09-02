@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f9fafb;
+  color: #1f2937;
+}
+
+:root {
+  --primary: #0066cc;
+  --secondary: #00a651;
+  --accent: #ff6b35;
+}
