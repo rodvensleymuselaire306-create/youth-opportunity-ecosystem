@@ -1,0 +1,501 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users Management
+model users {
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  password_hash         String?
+  first_name            String?
+  last_name             String?
+  avatar_url            String?
+  bio                   String?
+  city                  String?
+  phone                 String?
+  date_of_birth         DateTime?
+
+  // Profile fields
+  education_level       String?
+  study_field           String?
+
+  // Account fields
+  user_type             String    @default("young") // young, mentor, organization, admin
+  account_status        String    @default("active") // active, suspended, deleted
+  email_verified        Boolean   @default(false)
+  phone_verified        Boolean   @default(false)
+
+  // Relationships
+  created_organizations organizations[]  @relation("CreatedBy")
+  created_opportunities opportunities[]  @relation("CreatedBy")
+  mentor_profile        mentors?
+  mentorships_as_mentor mentorships[]   @relation("MentorUser")
+  mentorships_as_mentee mentorships[]   @relation("MenteeUser")
+  applications          opportunity_applications[]
+  notifications         notifications[]
+  verified_opportunities opportunities[] @relation("VerifiedBy")
+  verified_organizations organizations[] @relation("VerifiedBy")
+
+  // Metadata
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  last_login            DateTime?
+
+  @@index([email])
+  @@index([user_type])
+  @@index([city])
+  @@index([created_at])
+}
+
+model organizations {
+  id                    String    @id @default(uuid())
+  name                  String
+  slug                  String    @unique
+  description           String?
+  logo_url              String?
+  website               String?
+  email                 String?
+  phone                 String?
+
+  // Address
+  country               String?
+  city                  String?
+  address               String?
+
+  // Organization details
+  org_type              String    @default("other") // company, ngo, university, government, other
+  industry              String?
+  size                  String? // startup, small, medium, large, enterprise
+
+  // Verification
+  is_verified           Boolean   @default(false)
+  verification_level    String    @default("unverified") // unverified, pending, verified, partner
+  verified_by           String?
+  verified_at           DateTime?
+
+  // Admin fields
+  is_featured           Boolean   @default(false)
+  display_order         Int?
+
+  // Relationships
+  created_by            String
+  creator               users     @relation("CreatedBy", fields: [created_by], references: [id])
+  verifier              users?    @relation("VerifiedBy", fields: [verified_by], references: [id])
+  opportunities         opportunities[]
+  formations            formations[]
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([org_type])
+  @@index([city])
+  @@index([is_verified])
+  @@index([created_at])
+}
+
+model opportunities {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String?
+  description           String
+  short_description     String?
+
+  // Organization
+  organization_id       String
+  organizations         organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  // Classification
+  category              String    // job, internship, scholarship, contest, project_call, volunteer, training, event, entrepreneurship, fellowship, leadership
+  field                 String?
+
+  // Details
+  location              String?
+  mode                  String? // in_person, remote, hybrid
+
+  // Dates
+  published_at          DateTime  @default(now())
+  deadline              DateTime?
+  start_date            DateTime?
+  end_date              DateTime?
+
+  // Requirements
+  min_education_level   String?
+  required_experience_years Int?
+  languages             Json? // ["French", "English"]
+
+  // Metadata
+  skills_required       Json? // ["Communication", "Leadership"]
+  salary_min            Int?
+  salary_max            Int?
+  salary_currency       String?
+
+  // Application settings
+  application_url       String?
+  application_type      String? // external_link, internal_form, email
+  contact_email         String?
+
+  // Status
+  status                String    @default("draft") // draft, pending_review, approved, active, expired, archived, inactive
+  is_featured           Boolean   @default(false)
+
+  // Verification
+  is_verified           Boolean   @default(false)
+  verification_status   String    @default("unverified") // unverified, pending, verified
+  verified_by           String?
+  verified_at           DateTime?
+  last_verified_at      DateTime?
+
+  // Source tracking
+  source_url            String?
+  source_type           String? // direct, imported, api, feed
+  external_id           String?
+
+  // Metadata
+  view_count            Int       @default(0)
+  application_count     Int       @default(0)
+  created_by            String
+  creator               users     @relation("CreatedBy", fields: [created_by], references: [id])
+  verifier              users?    @relation("VerifiedBy", fields: [verified_by], references: [id])
+  applications          opportunity_applications[]
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([organization_id])
+  @@index([category])
+  @@index([status])
+  @@index([deadline])
+  @@index([created_at])
+}
+
+model opportunity_applications {
+  id                    String    @id @default(uuid())
+  opportunity_id        String
+  user_id               String
+
+  opportunity           opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade)
+  user                  users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  status                String    @default("submitted") // submitted, viewed, shortlisted, rejected, accepted
+
+  // Application content
+  resume_url            String?
+  cover_letter          String?
+  additional_info       Json?
+
+  // Tracking
+  applied_at            DateTime  @default(now())
+  viewed_at             DateTime?
+  responded_at          DateTime?
+
+  @@unique([opportunity_id, user_id])
+  @@index([opportunity_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([applied_at])
+}
+
+model skill_categories {
+  id                    String    @id @default(uuid())
+  name                  String    @unique
+  slug                  String    @unique
+  description           String?
+  icon                  String?
+  display_order         Int?
+
+  skills                skills[]
+
+  created_at            DateTime  @default(now())
+
+  @@index([slug])
+}
+
+model skills {
+  id                    String    @id @default(uuid())
+  name                  String    @unique
+  slug                  String    @unique
+  description           String?
+
+  category_id           String?
+  category              skill_categories? @relation(fields: [category_id], references: [id])
+
+  // Levels
+  level_beginner        Boolean   @default(true)
+  level_intermediate    Boolean   @default(true)
+  level_advanced        Boolean   @default(true)
+
+  is_popular            Boolean   @default(false)
+  popularity_score      Int       @default(0)
+
+  user_skills           user_skills[]
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category_id])
+  @@index([is_popular])
+}
+
+model user_skills {
+  id                    String    @id @default(uuid())
+  user_id               String
+  skill_id              String
+
+  user                  users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  skill                 skills    @relation(fields: [skill_id], references: [id], onDelete: Cascade)
+
+  level                 String? // beginner, intermediate, advanced
+  proficiency_score     Int? // 0-100
+  years_experience      Float?
+
+  is_verified           Boolean   @default(false)
+  verified_by           String? // self, mentor, employer, certification
+
+  added_at              DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@unique([user_id, skill_id])
+  @@index([user_id])
+  @@index([skill_id])
+  @@index([level])
+}
+
+model mentors {
+  id                    String    @id
+  user                  users     @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  professional_title    String?
+  organization          String?
+  years_experience      Int?
+  bio                   String?
+
+  // Mentorship details
+  mentoring_topics      Json? // ["Tech", "Leadership"]
+  availability          String? // very_available, somewhat_available, limited
+  mentoring_mode        String? // video_call, phone_call, chat, email
+
+  // Languages & rates
+  languages             Json?
+  is_pro                Boolean   @default(false)
+  hourly_rate           Int?
+
+  // Verification
+  is_verified           Boolean   @default(false)
+  verification_documents Json?
+
+  mentorships_as_mentor mentorships[] @relation("MentorProfile")
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([years_experience])
+  @@index([is_verified])
+}
+
+model mentorships {
+  id                    String    @id @default(uuid())
+  mentor_id             String
+  mentee_id             String
+
+  mentor                users     @relation("MentorUser", fields: [mentor_id], references: [id], onDelete: Cascade)
+  mentee                users     @relation("MenteeUser", fields: [mentee_id], references: [id], onDelete: Cascade)
+  mentor_profile        mentors   @relation("MentorProfile", fields: [mentor_id], references: [id], onDelete: Cascade)
+
+  status                String    @default("pending") // pending, active, paused, completed, rejected
+
+  // Details
+  goals                 String?
+  skills_to_develop     Json?
+  duration_weeks        Int?
+  frequency             String? // weekly, biweekly, monthly
+
+  // Tracking
+  start_date            DateTime?
+  end_date              DateTime?
+  requested_at          DateTime  @default(now())
+  accepted_at           DateTime?
+  completed_at          DateTime?
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([mentor_id])
+  @@index([mentee_id])
+  @@index([status])
+}
+
+model formation_categories {
+  id                    String    @id @default(uuid())
+  name                  String    @unique
+  slug                  String    @unique
+  description           String?
+  icon                  String?
+  display_order         Int?
+
+  formations            formations[]
+
+  created_at            DateTime  @default(now())
+
+  @@index([slug])
+}
+
+model formations {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String?
+  description           String?
+
+  // Provider
+  provider_id           String?
+  provider_name         String?
+  organization          organizations? @relation(fields: [provider_id], references: [id], onDelete: SetNull)
+
+  // Details
+  category_id           String?
+  category              formation_categories? @relation(fields: [category_id], references: [id])
+  level                 String?
+  duration_hours        Int?
+  duration_weeks        Int?
+
+  // Access
+  format                String? // online, in_person, hybrid, self_paced
+  start_date            DateTime?
+  end_date              DateTime?
+  enrollment_status     String? // open, closed, coming_soon
+
+  // Cost
+  is_free               Boolean   @default(false)
+  price                 Decimal   @db.Decimal(10, 2)
+  currency              String?
+
+  // Certification
+  provides_certification Boolean  @default(false)
+  certification_name    String?
+
+  // Skills
+  skills_taught         Json?
+
+  // Tracking
+  view_count            Int       @default(0)
+  enrollment_count      Int       @default(0)
+  rating                Decimal   @db.Decimal(3, 2)
+
+  source_url            String?
+  is_verified           Boolean   @default(false)
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([category_id])
+  @@index([level])
+  @@index([format])
+}
+
+model events {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String?
+  description           String?
+
+  // Organization
+  organization_id       String?
+  organizer_name        String?
+
+  // Details
+  event_type            String? // conference, workshop, forum, contest, meetup, webinar
+  category              String?
+
+  // Logistics
+  location              String?
+  mode                  String? // in_person, remote, hybrid
+  start_date            DateTime
+  end_date              DateTime?
+
+  // Registration
+  registration_url      String?
+  is_free               Boolean   @default(false)
+  ticket_price          Decimal   @db.Decimal(10, 2)
+  capacity              Int?
+  registered_count      Int       @default(0)
+
+  // Tracking
+  view_count            Int       @default(0)
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([event_type])
+  @@index([start_date])
+}
+
+model resources {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String?
+  description           String?
+  content               String?
+  resource_type         String? // guide, article, book, template, tool
+  category_id           String?
+  url                   String?
+  file_url              String?
+  author                String?
+  language              String?
+  is_featured           Boolean   @default(false)
+  view_count            Int       @default(0)
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([resource_type])
+  @@index([category_id])
+}
+
+model notifications {
+  id                    String    @id @default(uuid())
+  user_id               String
+  user                  users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  type                  String // new_opportunity, new_mentor_request, application_update, event_reminder, formation_available, message, system
+  title                 String
+  message               String
+  related_entity_id     String?
+
+  is_read               Boolean   @default(false)
+  read_at               DateTime?
+
+  created_at            DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([is_read])
+  @@index([created_at])
+}
+
+model verification_queue {
+  id                    String    @id @default(uuid())
+  entity_type           String // opportunity, organization, formation, event
+  entity_id             String
+
+  status                String    @default("pending") // pending, in_review, approved, rejected
+
+  submitted_at          DateTime  @default(now())
+  reviewed_at           DateTime?
+  reviewed_by           String?
+  rejection_reason      String?
+
+  @@index([entity_type])
+  @@index([status])
+  @@index([submitted_at])
+}
