@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: yoe-postgres
+    environment:
+      POSTGRES_USER: yoe_user
+      POSTGRES_PASSWORD: yoe_password
+      POSTGRES_DB: yoe_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - yoe-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: yoe-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - yoe-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yoe-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgresql://yoe_user:yoe_password@postgres:5432/yoe_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-key
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - yoe-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yoe-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:5000/api
+    depends_on:
+      - backend
+    networks:
+      - yoe-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+
+networks:
+  yoe-network:
+    driver: bridge
